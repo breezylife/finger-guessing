@@ -15,69 +15,71 @@ import {
   faHandPaper,
   faHandFist,
 } from "@fortawesome/free-solid-svg-icons";
-import { ref, push, update, onValue, child, get } from "firebase/database";
-import { fireDatabase } from "firebaseConfig";
+import { firestore } from "firebaseConfig";
 import { UserContext } from "App";
+import { useCookies } from "react-cookie";
+import {
+  collection,
+  doc,
+  getDoc,
+  getDocs,
+  updateDoc,
+} from "firebase/firestore";
 
 const GuessingRoomPage: React.FC = () => {
   const navigate = useNavigate();
+  const [cookies] = useCookies();
   const { roomId } = useParams();
   const userContext = useContext(UserContext);
   const [players, setPlayers] = useState<any[]>([]);
-  const [roomInfo, setRoomInfo] = useState<{
-    roomName: string;
-    creator: string;
-    taskName: string;
-  }>({ roomName: "", creator: "", taskName: "" });
+  const [roomInfo, setRoomInfo] = useState<any>({});
   const userName = userContext?.userInfo.userName;
   useEffect(() => {
+    if (!cookies.idToken) {
+      navigate("/signin");
+    }
+
     // room info listen
-    const roomRef = ref(fireDatabase, `rooms/${roomId}`);
-    onValue(roomRef, (snapshot) => {
-      setRoomInfo(snapshot.val());
-    });
+    handleRoomInfo();
 
     // room player listen
-    const playerListRef = ref(fireDatabase, `rooms/${roomId}/players`);
-    onValue(playerListRef, (snapshot) => {
-      if (snapshot) {
-        const playerData = [];
-        for (let key in snapshot.val()) {
-          playerData.push({ ...snapshot.val()[key], roomId: key });
-        }
-
-        setPlayers(playerData);
-      }
-    });
+    handlePlayers();
   }, []);
 
-  // const isRoomExisting = (roomId: string | undefined) => {
-  //   get(child(ref(fireDatabase), `rooms/${roomId}`))
-  //     .then((snapshot) => {
-  //       if (!snapshot.exists()) {
-  //         navigate("/");
-  //       }
-  //       setRoomInfo(snapshot.val());
-  //     })
-  //     .catch((error) => {
-  //       console.error(error);
-  //     });
-  // };
+  const handleRoomInfo = async () => {
+    const id = roomId as string;
+    const roomRef = doc(firestore, "rooms", id);
+    const roomDocSnap = await getDoc(roomRef);
+    setRoomInfo(roomDocSnap.data());
+  };
+
+  const handlePlayers = async () => {
+    const id = roomId as string;
+    const playersList = await getDocs(
+      collection(firestore, "rooms", id, "players")
+    );
+    const playersData: any[] = [];
+    playersList.forEach((doc) => {
+      playersData.push({ ...doc.data(), playerId: doc.id });
+    });
+    setPlayers(playersData);
+  };
 
   const handleTask = (
     e: React.FocusEvent<HTMLInputElement | HTMLTextAreaElement, Element>
   ) => {
-    const roomRef = ref(fireDatabase, `rooms/${roomId}`);
-    update(roomRef, { taskName: e.target.value });
+    const id = roomId as string;
+    const roomRef = doc(firestore, "rooms", id);
+    updateDoc(roomRef, { taskName: e.target.value });
   };
   return (
     <>
       <Container>
         <Box component="div" textAlign={"center"}>
-          <h1>Room : {roomInfo.roomName}</h1>
-          <h2>Room owner : {roomInfo.creator}</h2>
-          {roomInfo.creator !== userName ? (
-            <h3>Current Guessing Task : {roomInfo.taskName}</h3>
+          <h1>Room : {roomInfo?.roomName}</h1>
+          <h2>Room owner : {roomInfo?.creator}</h2>
+          {roomInfo?.creator !== userName ? (
+            <h3>Current Guessing Task : {roomInfo?.taskName}</h3>
           ) : (
             <>
               <TextField

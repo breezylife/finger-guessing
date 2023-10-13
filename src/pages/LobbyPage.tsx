@@ -10,10 +10,19 @@ import DialogActions from "@mui/material/DialogActions";
 import DialogContent from "@mui/material/DialogContent";
 import DialogContentText from "@mui/material/DialogContentText";
 import DialogTitle from "@mui/material/DialogTitle";
-import { ref, push, set, onValue, onChildAdded } from "firebase/database";
-import { fireDatabase } from "firebaseConfig";
+import { firestore } from "firebaseConfig";
 import { GuessingRoomCard } from "components/GuessingRoomCard";
 import { UserContext } from "App";
+import {
+  collection,
+  doc,
+  onSnapshot,
+  setDoc,
+  where,
+  query,
+  getDocs,
+  addDoc,
+} from "firebase/firestore";
 
 interface Props {
   roomName: string;
@@ -40,19 +49,19 @@ const LobbyPage: React.FC = () => {
     if (cookies.idToken?.selectedRoomId) {
       navigate(`/guessingRoom/${cookies.idToken.selectedRoomId}`);
     }
+    handleRoomsData();
 
-    // read rooms data
-    const roomListRef = ref(fireDatabase, "rooms");
-    onValue(roomListRef, (snapshot) => {
-      if (snapshot) {
-        const roomData = [];
-        for (let key in snapshot.val()) {
-          roomData.push({ ...snapshot.val()[key], roomId: key });
-        }
+    // const roomListRef = ref(fireDatabase, "rooms");
+    // onValue(roomListRef, (snapshot) => {
+    //   if (snapshot) {
+    //     const roomData = [];
+    //     for (let key in snapshot.val()) {
+    //       roomData.push({ ...snapshot.val()[key], roomId: key });
+    //     }
 
-        setGuessingRooms(roomData);
-      }
-    });
+    //     setGuessingRooms(roomData);
+    //   }
+    // });
   }, []);
 
   const [open, setOpen] = React.useState(false);
@@ -65,35 +74,40 @@ const LobbyPage: React.FC = () => {
     setOpen(false);
   };
 
+  const handleRoomsData = async () => {
+    const roomsList = await getDocs(collection(firestore, "rooms"));
+    const roomsData: any[] = [];
+    roomsList.forEach((doc) => {
+      roomsData.push({ ...doc.data(), roomId: doc.id });
+    });
+    setGuessingRooms(roomsData);
+  };
+
   const handleCreateRoom = async () => {
     await handleCreateGuessingRoom({ ...newGuessingRoom, creator: userName });
     setOpen(false);
   };
 
-  const handleCreateGuessingRoom = (roomInfo: {
+  const handleCreateGuessingRoom = async (roomInfo: {
     roomName: string;
     creator: string | undefined;
   }) => {
-    // create new room
-    const roomListRef = ref(fireDatabase, "rooms");
-    const newRoomRef = push(roomListRef);
-    set(newRoomRef, roomInfo);
-
-    const roomId = newRoomRef.key as string;
+    //create new room
+    const roomsRef = await addDoc(collection(firestore, "rooms"), roomInfo);
+    const roomId = roomsRef.id as string;
     handleJoinGuessingRoom(roomId);
   };
 
-  const handleJoinGuessingRoom = (roomId: string) => {
-    const userListRef = ref(fireDatabase, `rooms/${roomId}/players`);
-    const newUserRef = push(userListRef);
-
+  const handleJoinGuessingRoom = async (roomId: string) => {
+    const playersRef = await addDoc(
+      collection(firestore, `rooms/${roomId}/players`),
+      { userName }
+    );
     userContext?.setUserInfo({
       ...userContext.userInfo,
       selectedRoomId: roomId,
     });
     setCookie("idToken", { ...cookies.idToken, selectedRoomId: roomId });
-
-    set(newUserRef, { userName });
     navigate(`/guessingRoom/${roomId}`);
   };
 
