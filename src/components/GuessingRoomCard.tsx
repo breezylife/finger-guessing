@@ -41,7 +41,6 @@ export const GuessingRoomCard = ({
     updateDoc(userRef, { selectedRoomId: roomId });
 
     // const userDocSnap = await getDoc(userRef);
-    // console.log(userDocSnap.exists());
     // if (!userDocSnap.exists()) {
     handleJoinGuessingRoom(roomId);
     // }

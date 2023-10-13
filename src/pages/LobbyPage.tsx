@@ -40,20 +40,20 @@ const LobbyPage: React.FC = () => {
     roomName: "",
   });
   const [guessingRooms, setGuessingRooms] = useState<any[]>([]);
-  const userName = userContext?.userInfo.userName;
-  const userId = userContext?.userInfo.userId;
-  const selectedRoomId = userContext?.userInfo.selectedRoomId;
 
   useEffect(() => {
     if (!cookies.idToken) {
       navigate("/signin");
     }
 
-    if (selectedRoomId) {
-      navigate(`/guessingRoom/${cookies.idToken.selectedRoomId}`);
-    }
     handleRoomsData();
   }, []);
+
+  useEffect(() => {
+    if (userContext?.userInfo.selectedRoomId) {
+      navigate(`/guessingRoom/${userContext?.userInfo.selectedRoomId}`);
+    }
+  }, [userContext]);
 
   const [open, setOpen] = React.useState(false);
 
@@ -76,7 +76,10 @@ const LobbyPage: React.FC = () => {
   };
 
   const handleCreateRoom = async () => {
-    await handleCreateGuessingRoom({ ...newGuessingRoom, creator: userName });
+    await handleCreateGuessingRoom({
+      ...newGuessingRoom,
+      creator: userContext?.userInfo.userName as string,
+    });
     setOpen(false);
   };
 
@@ -96,16 +99,28 @@ const LobbyPage: React.FC = () => {
   const handleJoinGuessingRoom = async (roomId: string) => {
     const playersRef = await addDoc(
       collection(firestore, `rooms/${roomId}/players`),
-      { userName, userId }
+      {
+        userName: userContext?.userInfo.userName,
+        userId: userContext?.userInfo.userId,
+      }
     );
 
-    const userRef = doc(firestore, "users", userId as string);
-    updateDoc(userRef, { selectedRoomId: roomId });
+    const userRef = doc(
+      firestore,
+      "users",
+      userContext?.userInfo.userId as string
+    );
+    updateDoc(userRef, { selectedRoomId: roomId, playerId: playersRef.id });
     userContext?.setUserInfo({
       ...userContext.userInfo,
       selectedRoomId: roomId,
+      playerId: playersRef.id,
     });
-    setCookie("idToken", { ...cookies.idToken, selectedRoomId: roomId });
+    setCookie("idToken", {
+      ...cookies.idToken,
+      selectedRoomId: roomId,
+      playerId: playersRef.id,
+    });
     navigate(`/guessingRoom/${roomId}`);
   };
 
@@ -120,7 +135,8 @@ const LobbyPage: React.FC = () => {
         autoComplete="off"
       >
         <div>
-          Wellcome {userName} to this game, please try to entry a guessing room
+          Wellcome {userContext?.userInfo.userName} to this game, please try to
+          entry a guessing room
         </div>
         <br />
         <br />
@@ -133,7 +149,7 @@ const LobbyPage: React.FC = () => {
         </Button>
         <Grid container spacing={2}>
           {guessingRooms.map((room: Props) => (
-            <Grid item xs={4}>
+            <Grid key={room.roomId} item xs={4}>
               <GuessingRoomCard
                 creator={room.creator}
                 roomName={room.roomName}

@@ -11,6 +11,8 @@ import {
   Button,
   TextField,
   Box,
+  Backdrop,
+  CircularProgress,
 } from "@mui/material";
 import {
   faHandScissors,
@@ -31,6 +33,7 @@ import {
   updateDoc,
 } from "firebase/firestore";
 import { handleRandomColor } from "function";
+import ConfirmationDialog from "components/ConfirmationDialog";
 
 const GuessingRoomPage: React.FC = () => {
   const navigate = useNavigate();
@@ -41,6 +44,10 @@ const GuessingRoomPage: React.FC = () => {
   const [roomInfo, setRoomInfo] = useState<any>({});
   const [isGameProcessing, setIsGameProcessing] = useState<boolean>(false);
   const userName = userContext?.userInfo.userName;
+  const playerId = userContext?.userInfo.playerId;
+  const [isDialogOpen, setIsDialogOpen] = useState<boolean>(false);
+  const [isBackDropOpen, setIsBackDropOpen] = useState<boolean>(false);
+  const [rpsResult, setRpsResult] = useState<string>("");
 
   useEffect(() => {
     if (!cookies.idToken) {
@@ -85,12 +92,45 @@ const GuessingRoomPage: React.FC = () => {
   };
 
   const handleIsGameProcessing = async () => {
+    if (players.length < 2) {
+      alert("Number of people is less than 2");
+      return;
+    }
     const roomRef = doc(firestore, "rooms", roomId as string);
     const roomDocSnap = await getDoc(roomRef);
     updateDoc(roomRef, {
       isGameProcessing: !roomDocSnap.data()?.isGameProcessing,
     });
   };
+
+  const handleRpsResults = async () => {
+    const playerRef = doc(
+      firestore,
+      "rooms",
+      roomId as string,
+      "players",
+      playerId as string
+    );
+    // const playerDocSnap = await getDoc(playerRef);
+    updateDoc(playerRef, {
+      result: rpsResult,
+    });
+    setIsDialogOpen(false);
+    setIsBackDropOpen(true);
+  };
+
+  // const handleRenderHandIcon = (player: { userId: string }) => {
+  //   if (player.userId !== userContext?.userInfo.userId) {
+  //     return (
+  //       <FontAwesomeIcon
+  //         icon={faHandFist}
+  //         size="3x"
+  //         shake={isGameProcessing}
+  //         style={{ color: "#000000" }}
+  //       />
+  //     );
+  //   }
+  // };
   return (
     <>
       <Container>
@@ -148,7 +188,12 @@ const GuessingRoomPage: React.FC = () => {
         >
           <Grid container spacing={2}>
             {players.map((player) => (
-              <Grid item xs={2} sx={{ margin: "15px 35px" }}>
+              <Grid
+                key={player.playerId}
+                item
+                xs={2}
+                sx={{ margin: "15px 35px" }}
+              >
                 <Stack sx={{ height: "150px", width: "150px" }}>
                   <Avatar
                     sx={{
@@ -163,14 +208,36 @@ const GuessingRoomPage: React.FC = () => {
                       ? player.userName
                       : "Me"}
                   </Avatar>
-                  {player.userId !== userContext?.userInfo.userId && (
-                    <FontAwesomeIcon
-                      icon={faHandFist}
-                      size="3x"
-                      shake={isGameProcessing}
-                      style={{ color: "#000000" }}
-                    />
-                  )}
+                  {
+                    player.userId !== userContext?.userInfo.userId && (
+                      <FontAwesomeIcon
+                        icon={faHandFist}
+                        size="3x"
+                        shake={isGameProcessing}
+                        style={{ color: "#000000" }}
+                      />
+                    )
+                    // : player.result === "paper" ? (
+                    //   <FontAwesomeIcon
+                    //     icon={faHandPaper}
+                    //     size="3x"
+                    //     style={{ color: "#fbd723" }}
+                    //   />
+                    // ) : player.result === "scissors" ? (
+                    //   <FontAwesomeIcon
+                    //     icon={faHandScissors}
+                    //     size="3x"
+                    //     style={{ color: "#fbd723" }}
+                    //   />
+                    // ) : player.result === "rock" ? (
+                    //   <FontAwesomeIcon
+                    //     icon={faHandRock}
+                    //     size="3x"
+                    //     style={{ color: "#fbd723" }}
+                    //   />
+                    // ) : (
+                    //   <></>)
+                  }
                 </Stack>
               </Grid>
             ))}
@@ -183,6 +250,10 @@ const GuessingRoomPage: React.FC = () => {
               variant="contained"
               sx={{ width: "200px", height: "200px", borderRadius: "200px" }}
               disabled={!isGameProcessing}
+              onClick={() => {
+                setIsDialogOpen(true);
+                setRpsResult("paper");
+              }}
             >
               <FontAwesomeIcon
                 icon={faHandPaper}
@@ -194,6 +265,10 @@ const GuessingRoomPage: React.FC = () => {
               variant="contained"
               sx={{ width: "200px", height: "200px", borderRadius: "200px" }}
               disabled={!isGameProcessing}
+              onClick={() => {
+                setIsDialogOpen(true);
+                setRpsResult("scissors");
+              }}
             >
               <FontAwesomeIcon
                 icon={faHandScissors}
@@ -205,6 +280,10 @@ const GuessingRoomPage: React.FC = () => {
               variant="contained"
               sx={{ width: "200px", height: "200px", borderRadius: "200px" }}
               disabled={!isGameProcessing}
+              onClick={() => {
+                setIsDialogOpen(true);
+                setRpsResult("rock");
+              }}
             >
               <FontAwesomeIcon
                 icon={faHandRock}
@@ -219,8 +298,8 @@ const GuessingRoomPage: React.FC = () => {
       <Box sx={{ position: "absolute", top: 30, right: 20 }}>
         <Avatar
           sx={{
-            height: "150px",
-            width: "150px",
+            height: "100px",
+            width: "100px",
             marginBottom: "10px",
           }}
           src="/broken-image.jpg"
@@ -233,6 +312,18 @@ const GuessingRoomPage: React.FC = () => {
         </Avatar>
         <Typography textAlign="center">Audiences : {}</Typography>
       </Box>
+      <ConfirmationDialog
+        open={isDialogOpen}
+        dialogContent={`Are you going to threw ${rpsResult}`}
+        handleClose={() => setIsDialogOpen(false)}
+        hanldeConfirm={handleRpsResults}
+      />
+      <Backdrop
+        sx={{ color: "#fff", zIndex: (theme) => theme.zIndex.drawer + 1 }}
+        open={isBackDropOpen}
+      >
+        <CircularProgress color="inherit" />
+      </Backdrop>
     </>
   );
 };

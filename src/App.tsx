@@ -7,6 +7,7 @@ interface IUserInfo {
   userName: string;
   userId: string;
   selectedRoomId?: string;
+  playerId?: string;
 }
 
 export const UserContext = createContext<{
@@ -20,6 +21,7 @@ const App: React.FC = () => {
     userName: "",
     userId: "",
     selectedRoomId: "",
+    playerId: "",
   });
 
   useEffect(() => {
@@ -28,6 +30,7 @@ const App: React.FC = () => {
       userName: cookies?.idToken?.userName,
       userId: cookies?.idToken?.userId,
       selectedRoomId: cookies?.idToken?.selectedRoomId,
+      playerId: cookies?.idToken?.playerId,
     });
   }, []);
 

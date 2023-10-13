@@ -68,6 +68,7 @@ const SigninPage: React.FC = () => {
             idToken,
             userId: userCredential.user.uid,
             selectedRoomId: userDocSnap.data()?.selectedRoomId,
+            playerId: userDocSnap.data()?.playerId,
           });
         });
         userContext?.setUserInfo({
