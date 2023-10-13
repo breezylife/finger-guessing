@@ -85,7 +85,10 @@ const LobbyPage: React.FC = () => {
     creator: string | undefined;
   }) => {
     //create new room
-    const roomsRef = await addDoc(collection(firestore, "rooms"), roomInfo);
+    const roomsRef = await addDoc(collection(firestore, "rooms"), {
+      ...roomInfo,
+      isGameProcessing: false,
+    });
     const roomId = roomsRef.id as string;
     handleJoinGuessingRoom(roomId);
   };

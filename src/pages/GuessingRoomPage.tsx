@@ -1,19 +1,23 @@
 import React, { useContext, useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import Box from "@mui/material/Box";
-import TextField from "@mui/material/TextField";
-import Button from "@mui/material/Button";
-import Avatar from "@mui/material/Avatar";
-import Container from "@mui/material/Container";
-import Stack from "@mui/material/Stack";
-import Grid from "@mui/material/Grid";
-import Divider from "@mui/material/Divider";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import {
+  Divider,
+  Typography,
+  Grid,
+  Stack,
+  Avatar,
+  Container,
+  Button,
+  TextField,
+  Box,
+} from "@mui/material";
 import {
   faHandScissors,
   faHandRock,
   faHandPaper,
   faHandFist,
+  faUsersLine,
 } from "@fortawesome/free-solid-svg-icons";
 import { firestore } from "firebaseConfig";
 import { UserContext } from "App";
@@ -22,7 +26,6 @@ import {
   collection,
   doc,
   getDoc,
-  getDocs,
   onSnapshot,
   query,
   updateDoc,
@@ -36,7 +39,9 @@ const GuessingRoomPage: React.FC = () => {
   const userContext = useContext(UserContext);
   const [players, setPlayers] = useState<any[]>([]);
   const [roomInfo, setRoomInfo] = useState<any>({});
+  const [isGameProcessing, setIsGameProcessing] = useState<boolean>(false);
   const userName = userContext?.userInfo.userName;
+
   useEffect(() => {
     if (!cookies.idToken) {
       navigate("/signin");
@@ -52,6 +57,7 @@ const GuessingRoomPage: React.FC = () => {
   const handleRoomInfo = async () => {
     onSnapshot(doc(firestore, "rooms", roomId as string), (doc) => {
       setRoomInfo(doc.data());
+      setIsGameProcessing(doc.data()?.isGameProcessing);
     });
   };
 
@@ -61,7 +67,11 @@ const GuessingRoomPage: React.FC = () => {
     );
     onSnapshot(playersQuery, (querySnapshot) => {
       const playersData: any[] = querySnapshot.docs.map((doc) => {
-        return { ...doc.data(), playerId: doc.id };
+        return {
+          ...doc.data(),
+          playerId: doc.id,
+          avatarColor: handleRandomColor(),
+        };
       });
       setPlayers(playersData);
     });
@@ -70,9 +80,16 @@ const GuessingRoomPage: React.FC = () => {
   const handleTask = (
     e: React.FocusEvent<HTMLInputElement | HTMLTextAreaElement, Element>
   ) => {
-    const id = roomId as string;
-    const roomRef = doc(firestore, "rooms", id);
+    const roomRef = doc(firestore, "rooms", roomId as string);
     updateDoc(roomRef, { taskName: e.target.value });
+  };
+
+  const handleIsGameProcessing = async () => {
+    const roomRef = doc(firestore, "rooms", roomId as string);
+    const roomDocSnap = await getDoc(roomRef);
+    updateDoc(roomRef, {
+      isGameProcessing: !roomDocSnap.data()?.isGameProcessing,
+    });
   };
   return (
     <>
@@ -81,7 +98,10 @@ const GuessingRoomPage: React.FC = () => {
           <h1>Room : {roomInfo?.roomName}</h1>
           <h2>Room owner : {roomInfo?.creator}</h2>
           {roomInfo?.creator !== userName ? (
-            <h3>Current Guessing Task : {roomInfo?.taskName}</h3>
+            <>
+              <h3>Current Guessing Task : {roomInfo?.taskName}</h3>
+              <Divider sx={{ margin: "20px 0" }} />
+            </>
           ) : (
             <>
               <TextField
@@ -89,10 +109,34 @@ const GuessingRoomPage: React.FC = () => {
                 label="Current Guessing Task"
                 variant="standard"
                 onBlur={(e) => handleTask(e)}
+                disabled={isGameProcessing}
               />
               <br />
               <br />
-              <Button variant="contained">Start!</Button>
+              {isGameProcessing ? (
+                <>
+                  <Button
+                    variant="contained"
+                    onClick={() => handleIsGameProcessing()}
+                  >
+                    Cancel!
+                  </Button>
+                  <Divider sx={{ margin: "20px 0" }} />
+                  <Typography textAlign={"center"}>
+                    Let's RPS！ Please make a Deep Thinking{" "}
+                  </Typography>
+                </>
+              ) : (
+                <>
+                  <Button
+                    variant="contained"
+                    onClick={() => handleIsGameProcessing()}
+                  >
+                    Start!
+                  </Button>
+                  <Divider sx={{ margin: "20px 0" }} />
+                </>
+              )}
             </>
           )}
         </Box>
@@ -111,7 +155,7 @@ const GuessingRoomPage: React.FC = () => {
                       height: "100%",
                       width: "100%",
                       marginBottom: "10px",
-                      backgroundColor: handleRandomColor(),
+                      backgroundColor: player.avatarColor,
                     }}
                     src="/broken-image.jpg"
                   >
@@ -123,7 +167,7 @@ const GuessingRoomPage: React.FC = () => {
                     <FontAwesomeIcon
                       icon={faHandFist}
                       size="3x"
-                      shake={false}
+                      shake={isGameProcessing}
                       style={{ color: "#000000" }}
                     />
                   )}
@@ -136,18 +180,20 @@ const GuessingRoomPage: React.FC = () => {
         <Box sx={{ "& button": { m: 2 }, marginTop: "20px" }}>
           <Stack direction="row" justifyContent="center">
             <Button
-              variant="outlined"
+              variant="contained"
               sx={{ width: "200px", height: "200px", borderRadius: "200px" }}
+              disabled={!isGameProcessing}
             >
               <FontAwesomeIcon
                 icon={faHandPaper}
                 size="6x"
-                style={{ color: "#346fd5" }}
+                style={{ color: "#ffffff" }}
               />
             </Button>
             <Button
-              variant="outlined"
+              variant="contained"
               sx={{ width: "200px", height: "200px", borderRadius: "200px" }}
+              disabled={!isGameProcessing}
             >
               <FontAwesomeIcon
                 icon={faHandScissors}
@@ -156,8 +202,9 @@ const GuessingRoomPage: React.FC = () => {
               />
             </Button>
             <Button
-              variant="outlined"
+              variant="contained"
               sx={{ width: "200px", height: "200px", borderRadius: "200px" }}
+              disabled={!isGameProcessing}
             >
               <FontAwesomeIcon
                 icon={faHandRock}
@@ -168,6 +215,24 @@ const GuessingRoomPage: React.FC = () => {
           </Stack>
         </Box>
       </Container>
+
+      <Box sx={{ position: "absolute", top: 30, right: 20 }}>
+        <Avatar
+          sx={{
+            height: "150px",
+            width: "150px",
+            marginBottom: "10px",
+          }}
+          src="/broken-image.jpg"
+        >
+          <FontAwesomeIcon
+            icon={faUsersLine}
+            size="3x"
+            style={{ color: "#ffffff" }}
+          />
+        </Avatar>
+        <Typography textAlign="center">Audiences : {}</Typography>
+      </Box>
     </>
   );
 };
