@@ -23,8 +23,11 @@ import {
   doc,
   getDoc,
   getDocs,
+  onSnapshot,
+  query,
   updateDoc,
 } from "firebase/firestore";
+import { handleRandomColor } from "function";
 
 const GuessingRoomPage: React.FC = () => {
   const navigate = useNavigate();
@@ -47,22 +50,21 @@ const GuessingRoomPage: React.FC = () => {
   }, []);
 
   const handleRoomInfo = async () => {
-    const id = roomId as string;
-    const roomRef = doc(firestore, "rooms", id);
-    const roomDocSnap = await getDoc(roomRef);
-    setRoomInfo(roomDocSnap.data());
+    onSnapshot(doc(firestore, "rooms", roomId as string), (doc) => {
+      setRoomInfo(doc.data());
+    });
   };
 
   const handlePlayers = async () => {
-    const id = roomId as string;
-    const playersList = await getDocs(
-      collection(firestore, "rooms", id, "players")
+    const playersQuery = query(
+      collection(firestore, "rooms", roomId as string, "players")
     );
-    const playersData: any[] = [];
-    playersList.forEach((doc) => {
-      playersData.push({ ...doc.data(), playerId: doc.id });
+    onSnapshot(playersQuery, (querySnapshot) => {
+      const playersData: any[] = querySnapshot.docs.map((doc) => {
+        return { ...doc.data(), playerId: doc.id };
+      });
+      setPlayers(playersData);
     });
-    setPlayers(playersData);
   };
 
   const handleTask = (
@@ -105,17 +107,26 @@ const GuessingRoomPage: React.FC = () => {
               <Grid item xs={2} sx={{ margin: "15px 35px" }}>
                 <Stack sx={{ height: "150px", width: "150px" }}>
                   <Avatar
-                    sx={{ height: "100%", width: "100%", marginBottom: "10px" }}
+                    sx={{
+                      height: "100%",
+                      width: "100%",
+                      marginBottom: "10px",
+                      backgroundColor: handleRandomColor(),
+                    }}
                     src="/broken-image.jpg"
                   >
-                    {player.userName}
+                    {player.userId !== userContext?.userInfo.userId
+                      ? player.userName
+                      : "Me"}
                   </Avatar>
-                  <FontAwesomeIcon
-                    icon={faHandFist}
-                    size="3x"
-                    shake={false}
-                    style={{ color: "#000000" }}
-                  />
+                  {player.userId !== userContext?.userInfo.userId && (
+                    <FontAwesomeIcon
+                      icon={faHandFist}
+                      size="3x"
+                      shake={false}
+                      style={{ color: "#000000" }}
+                    />
+                  )}
                 </Stack>
               </Grid>
             ))}

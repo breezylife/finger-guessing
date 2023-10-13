@@ -13,10 +13,11 @@ import LockOutlinedIcon from "@mui/icons-material/LockOutlined";
 import Typography from "@mui/material/Typography";
 import Container from "@mui/material/Container";
 import { createTheme, ThemeProvider } from "@mui/material/styles";
-import { firebaseAuth } from "firebaseConfig";
+import { firebaseAuth, firestore } from "firebaseConfig";
 import { signInWithEmailAndPassword } from "firebase/auth";
 import { useCookies } from "react-cookie";
 import { UserContext } from "App";
+import { doc, getDoc } from "firebase/firestore";
 
 function Copyright(props: any) {
   return (
@@ -57,12 +58,22 @@ const SigninPage: React.FC = () => {
     const email = data.get("email") as string;
     const password = data.get("password") as string;
     signInWithEmailAndPassword(firebaseAuth, email, password)
-      .then((userCredential) => {
-        userCredential.user.getIdToken().then((idToken) => {
-          setCookie("idToken", { userName, idToken });
-        });
+      .then(async (userCredential) => {
+        const userRef = doc(firestore, "users", userCredential.user.uid);
+        const userDocSnap = await getDoc(userRef);
 
-        userContext?.setUserInfo({ userName });
+        userCredential.user.getIdToken().then((idToken) => {
+          setCookie("idToken", {
+            userName: userDocSnap.data()?.userName,
+            idToken,
+            userId: userCredential.user.uid,
+            selectedRoomId: userDocSnap.data()?.selectedRoomId,
+          });
+        });
+        userContext?.setUserInfo({
+          userName: userDocSnap.data()?.userName,
+          userId: userCredential.user.uid,
+        });
         navigate("/");
       })
       .catch((error) => {
@@ -97,7 +108,7 @@ const SigninPage: React.FC = () => {
             noValidate
             sx={{ mt: 1 }}
           >
-            <Grid item xs={12} sm={6}>
+            {/* <Grid item xs={12} sm={6}>
               <TextField
                 required
                 fullWidth
@@ -106,7 +117,7 @@ const SigninPage: React.FC = () => {
                 name="userName"
                 autoComplete="family-name"
               />
-            </Grid>
+            </Grid> */}
             <TextField
               margin="normal"
               required

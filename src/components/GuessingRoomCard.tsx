@@ -8,15 +8,17 @@ import Button from "@mui/material/Button";
 import Typography from "@mui/material/Typography";
 import { UserContext } from "App";
 import { useCookies } from "react-cookie";
+import { doc, getDoc, updateDoc } from "firebase/firestore";
+import { firestore } from "firebaseConfig";
 
 export const GuessingRoomCard = ({
   creator,
-  content,
+  roomName,
   roomId,
   handleJoinGuessingRoom,
 }: {
   creator: string;
-  content?: string;
+  roomName: string;
   roomId: string;
   handleJoinGuessingRoom: (roomId: string) => void;
 }) => {
@@ -24,13 +26,25 @@ export const GuessingRoomCard = ({
   const [cookies, setCookie] = useCookies();
   const userContext = useContext(UserContext);
 
-  const handleEntryRoom = () => {
+  const handleEntryRoom = async () => {
     userContext?.setUserInfo({
       ...userContext.userInfo,
       selectedRoomId: roomId,
     });
     setCookie("idToken", { ...cookies.idToken, selectedRoomId: roomId });
+
+    const userRef = doc(
+      firestore,
+      "users",
+      userContext?.userInfo.userId as string
+    );
+    updateDoc(userRef, { selectedRoomId: roomId });
+
+    // const userDocSnap = await getDoc(userRef);
+    // console.log(userDocSnap.exists());
+    // if (!userDocSnap.exists()) {
     handleJoinGuessingRoom(roomId);
+    // }
     navigate(`/guessingRoom/${roomId}`);
   };
   return (
@@ -43,10 +57,10 @@ export const GuessingRoomCard = ({
       />
       <CardContent>
         <Typography gutterBottom variant="h5" component="div">
-          {creator}
+          {roomName}
         </Typography>
         <Typography variant="body2" color="text.secondary">
-          {content}
+          {""}
         </Typography>
       </CardContent>
       <CardActions sx={{ textAlign: "center" }}>

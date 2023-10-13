@@ -5,6 +5,7 @@ import { useCookies } from "react-cookie";
 
 interface IUserInfo {
   userName: string;
+  userId: string;
   selectedRoomId?: string;
 }
 
@@ -17,6 +18,7 @@ const App: React.FC = () => {
   const [cookies] = useCookies();
   const [userInfo, setUserInfo] = useState<IUserInfo>({
     userName: "",
+    userId: "",
     selectedRoomId: "",
   });
 
@@ -24,6 +26,7 @@ const App: React.FC = () => {
     // read user info from cookie
     setUserInfo({
       userName: cookies?.idToken?.userName,
+      userId: cookies?.idToken?.userId,
       selectedRoomId: cookies?.idToken?.selectedRoomId,
     });
   }, []);

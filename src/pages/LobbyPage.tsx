@@ -22,6 +22,7 @@ import {
   query,
   getDocs,
   addDoc,
+  updateDoc,
 } from "firebase/firestore";
 
 interface Props {
@@ -40,28 +41,18 @@ const LobbyPage: React.FC = () => {
   });
   const [guessingRooms, setGuessingRooms] = useState<any[]>([]);
   const userName = userContext?.userInfo.userName;
+  const userId = userContext?.userInfo.userId;
+  const selectedRoomId = userContext?.userInfo.selectedRoomId;
 
   useEffect(() => {
     if (!cookies.idToken) {
       navigate("/signin");
     }
 
-    if (cookies.idToken?.selectedRoomId) {
+    if (selectedRoomId) {
       navigate(`/guessingRoom/${cookies.idToken.selectedRoomId}`);
     }
     handleRoomsData();
-
-    // const roomListRef = ref(fireDatabase, "rooms");
-    // onValue(roomListRef, (snapshot) => {
-    //   if (snapshot) {
-    //     const roomData = [];
-    //     for (let key in snapshot.val()) {
-    //       roomData.push({ ...snapshot.val()[key], roomId: key });
-    //     }
-
-    //     setGuessingRooms(roomData);
-    //   }
-    // });
   }, []);
 
   const [open, setOpen] = React.useState(false);
@@ -75,12 +66,13 @@ const LobbyPage: React.FC = () => {
   };
 
   const handleRoomsData = async () => {
-    const roomsList = await getDocs(collection(firestore, "rooms"));
-    const roomsData: any[] = [];
-    roomsList.forEach((doc) => {
-      roomsData.push({ ...doc.data(), roomId: doc.id });
+    const roomsQuery = query(collection(firestore, "rooms"));
+    onSnapshot(roomsQuery, (querySnapshot) => {
+      const roomsData: any[] = querySnapshot.docs.map((doc) => {
+        return { ...doc.data(), roomId: doc.id };
+      });
+      setGuessingRooms(roomsData);
     });
-    setGuessingRooms(roomsData);
   };
 
   const handleCreateRoom = async () => {
@@ -101,8 +93,11 @@ const LobbyPage: React.FC = () => {
   const handleJoinGuessingRoom = async (roomId: string) => {
     const playersRef = await addDoc(
       collection(firestore, `rooms/${roomId}/players`),
-      { userName }
+      { userName, userId }
     );
+
+    const userRef = doc(firestore, "users", userId as string);
+    updateDoc(userRef, { selectedRoomId: roomId });
     userContext?.setUserInfo({
       ...userContext.userInfo,
       selectedRoomId: roomId,
@@ -138,7 +133,7 @@ const LobbyPage: React.FC = () => {
             <Grid item xs={4}>
               <GuessingRoomCard
                 creator={room.creator}
-                content={""}
+                roomName={room.roomName}
                 roomId={room.roomId}
                 handleJoinGuessingRoom={handleJoinGuessingRoom}
               />

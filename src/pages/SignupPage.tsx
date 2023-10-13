@@ -13,10 +13,11 @@ import LockOutlinedIcon from "@mui/icons-material/LockOutlined";
 import Typography from "@mui/material/Typography";
 import Container from "@mui/material/Container";
 import { createTheme, ThemeProvider } from "@mui/material/styles";
-import { firebaseAuth } from "firebaseConfig";
+import { firebaseAuth, firestore } from "firebaseConfig";
 import { useCookies } from "react-cookie";
 import { useNavigate } from "react-router-dom";
 import { UserContext } from "App";
+import { addDoc, collection, doc, setDoc } from "firebase/firestore";
 
 function Copyright(props: any) {
   return (
@@ -58,11 +59,20 @@ const SignupPage: React.FC = () => {
     const password = data.get("password") as string;
 
     createUserWithEmailAndPassword(firebaseAuth, email, password)
-      .then((userCredential) => {
-        userCredential.user.getIdToken().then((idToken) => {
-          setCookie("idToken", { userName, idToken });
+      .then(async (userCredential) => {
+        await setDoc(doc(firestore, "users", userCredential.user.uid), {
+          userName,
+          email: userCredential.user.email,
+          providerId: userCredential.user.providerId,
         });
-        userContext?.setUserInfo({ userName });
+        userCredential.user.getIdToken().then((idToken) => {
+          setCookie("idToken", {
+            userName,
+            idToken,
+            userId: userCredential.user.uid,
+          });
+        });
+        userContext?.setUserInfo({ userName, userId: userCredential.user.uid });
         navigate("/");
       })
       .catch((error) => {
@@ -122,7 +132,7 @@ const SignupPage: React.FC = () => {
                     autoComplete="family-name"
                   />
                 </Grid> */}
-                <Grid item xs={12} sm={6}>
+                <Grid item xs={12}>
                   <TextField
                     required
                     fullWidth
