@@ -5,7 +5,7 @@ import { useCookies } from "react-cookie";
 
 interface IUserInfo {
   userName: string;
-  selectedRoomId: string;
+  selectedRoomId?: string;
 }
 
 export const UserContext = createContext<{

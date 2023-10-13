@@ -16,6 +16,7 @@ import { createTheme, ThemeProvider } from "@mui/material/styles";
 import { firebaseAuth } from "firebaseConfig";
 import { useCookies } from "react-cookie";
 import { useNavigate } from "react-router-dom";
+import { UserContext } from "App";
 
 function Copyright(props: any) {
   return (
@@ -41,6 +42,7 @@ const defaultTheme = createTheme();
 const SignupPage: React.FC = () => {
   const navigate = useNavigate();
   const [cookies, setCookie] = useCookies();
+  const userContext = useContext(UserContext);
 
   useEffect(() => {
     if (cookies.idToken) {
@@ -60,7 +62,7 @@ const SignupPage: React.FC = () => {
         userCredential.user.getIdToken().then((idToken) => {
           setCookie("idToken", { userName, idToken });
         });
-
+        userContext?.setUserInfo({ userName });
         navigate("/");
       })
       .catch((error) => {

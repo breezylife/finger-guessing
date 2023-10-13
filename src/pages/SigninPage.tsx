@@ -1,4 +1,4 @@
-import React, { useEffect } from "react";
+import React, { useContext, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import Avatar from "@mui/material/Avatar";
 import Button from "@mui/material/Button";
@@ -16,6 +16,7 @@ import { createTheme, ThemeProvider } from "@mui/material/styles";
 import { firebaseAuth } from "firebaseConfig";
 import { signInWithEmailAndPassword } from "firebase/auth";
 import { useCookies } from "react-cookie";
+import { UserContext } from "App";
 
 function Copyright(props: any) {
   return (
@@ -41,6 +42,7 @@ const defaultTheme = createTheme();
 const SigninPage: React.FC = () => {
   const navigate = useNavigate();
   const [cookies, setCookie] = useCookies();
+  const userContext = useContext(UserContext);
 
   useEffect(() => {
     if (cookies.idToken) {
@@ -59,6 +61,8 @@ const SigninPage: React.FC = () => {
         userCredential.user.getIdToken().then((idToken) => {
           setCookie("idToken", { userName, idToken });
         });
+
+        userContext?.setUserInfo({ userName });
         navigate("/");
       })
       .catch((error) => {
