@@ -274,11 +274,16 @@ const GuessingRoomPage: React.FC = () => {
                 xs={2}
                 sx={{ margin: "15px 35px" }}
               >
-                <Stack sx={{ height: "150px", width: "150px" }}>
+                <Stack
+                  sx={{
+                    width: "150px",
+                    height: "150px",
+                  }}
+                >
                   <Avatar
                     sx={{
-                      height: "100%",
-                      width: "100%",
+                      height: "80%",
+                      width: "80%",
                       marginBottom: "10px",
                       backgroundColor: player.avatarColor,
                     }}
@@ -320,7 +325,7 @@ const GuessingRoomPage: React.FC = () => {
           <Stack direction="row" justifyContent="center">
             <Button
               variant="contained"
-              sx={{ width: "200px", height: "200px", borderRadius: "200px" }}
+              sx={{ width: "100px", height: "100px", borderRadius: "100px" }}
               disabled={!isGameProcessing}
               onClick={() => {
                 setIsDialogOpen(true);
@@ -335,7 +340,7 @@ const GuessingRoomPage: React.FC = () => {
             </Button>
             <Button
               variant="contained"
-              sx={{ width: "200px", height: "200px", borderRadius: "200px" }}
+              sx={{ width: "100px", height: "100px", borderRadius: "100px" }}
               disabled={!isGameProcessing}
               onClick={() => {
                 setIsDialogOpen(true);
@@ -350,7 +355,7 @@ const GuessingRoomPage: React.FC = () => {
             </Button>
             <Button
               variant="contained"
-              sx={{ width: "200px", height: "200px", borderRadius: "200px" }}
+              sx={{ width: "100px", height: "100px", borderRadius: "100px" }}
               disabled={!isGameProcessing}
               onClick={() => {
                 setIsDialogOpen(true);
@@ -367,7 +372,7 @@ const GuessingRoomPage: React.FC = () => {
         </Box>
       </Container>
 
-      <Box sx={{ position: "absolute", top: 30, right: 20 }}>
+      {/* <Box sx={{ position: "absolute", top: 30, right: 20 }}>
         <Avatar
           sx={{
             height: "100px",
@@ -383,7 +388,7 @@ const GuessingRoomPage: React.FC = () => {
           />
         </Avatar>
         <Typography textAlign="center">Audiences : {}</Typography>
-      </Box>
+      </Box> */}
       <ConfirmationDialog
         open={isDialogOpen}
         dialogContent={`Are you going to threw ${rpsResult}?`}

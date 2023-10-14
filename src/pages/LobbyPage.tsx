@@ -147,14 +147,9 @@ const LobbyPage: React.FC = () => {
         noValidate
         autoComplete="off"
       >
-        <div>
-          Wellcome {userInfo.userName} to this game, please try to entry a
-          guessing room
-        </div>
-        <br />
-        <br />
+        <div>User : {userInfo.userName}</div>
         <Button
-          sx={{ float: "right" }}
+          sx={{ margin: "20px 0" }}
           variant="outlined"
           onClick={handleClickOpen}
         >
@@ -162,7 +157,7 @@ const LobbyPage: React.FC = () => {
         </Button>
         <Grid container spacing={2}>
           {guessingRooms.map((room: Props) => (
-            <Grid key={room.roomId} item xs={4}>
+            <Grid key={room.roomId} item xs={12} sm={6} md={4}>
               <GuessingRoomCard
                 creator={room.creator}
                 roomName={room.roomName}
