@@ -3,7 +3,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { LobbyPage, SigninPage, SignupPage, GuessingRoomPage } from "pages";
 import { useCookies } from "react-cookie";
 
-interface IUserInfo {
+export interface IUserInfo {
   userName: string;
   userId: string;
   selectedRoomId?: string;

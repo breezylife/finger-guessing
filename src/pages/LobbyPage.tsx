@@ -12,7 +12,7 @@ import DialogContentText from "@mui/material/DialogContentText";
 import DialogTitle from "@mui/material/DialogTitle";
 import { firestore } from "firebaseConfig";
 import { GuessingRoomCard } from "components/GuessingRoomCard";
-import { UserContext } from "App";
+import { IUserInfo, UserContext } from "App";
 import {
   collection,
   doc,
@@ -36,6 +36,12 @@ const LobbyPage: React.FC = () => {
   const navigate = useNavigate();
   const [cookies, setCookie] = useCookies();
   const userContext = useContext(UserContext);
+  const [userInfo, setUserInfo] = useState<IUserInfo>({
+    userName: "",
+    userId: "",
+    selectedRoomId: "",
+    playerId: "",
+  });
   const [newGuessingRoom, setNewGuessingRoom] = useState({
     roomName: "",
   });
@@ -47,11 +53,22 @@ const LobbyPage: React.FC = () => {
     }
 
     handleRoomsData();
-  }, []);
+  }, [userInfo]);
 
   useEffect(() => {
     if (userContext?.userInfo.selectedRoomId) {
       navigate(`/guessingRoom/${userContext?.userInfo.selectedRoomId}`);
+    }
+  }, [userContext]);
+
+  useEffect(() => {
+    if (userContext?.userInfo.userId) {
+      setUserInfo({
+        userName: userContext?.userInfo.userName as string,
+        userId: userContext?.userInfo.userId as string,
+        selectedRoomId: userContext?.userInfo.selectedRoomId as string,
+        playerId: userContext?.userInfo.playerId as string,
+      });
     }
   }, [userContext]);
 
@@ -78,7 +95,7 @@ const LobbyPage: React.FC = () => {
   const handleCreateRoom = async () => {
     await handleCreateGuessingRoom({
       ...newGuessingRoom,
-      creator: userContext?.userInfo.userName as string,
+      creator: userInfo.userName as string,
     });
     setOpen(false);
   };
@@ -100,19 +117,15 @@ const LobbyPage: React.FC = () => {
     const playersRef = await addDoc(
       collection(firestore, `rooms/${roomId}/players`),
       {
-        userName: userContext?.userInfo.userName,
-        userId: userContext?.userInfo.userId,
+        userName: userInfo.userName,
+        userId: userInfo.userId,
       }
     );
 
-    const userRef = doc(
-      firestore,
-      "users",
-      userContext?.userInfo.userId as string
-    );
+    const userRef = doc(firestore, "users", userInfo.userId as string);
     updateDoc(userRef, { selectedRoomId: roomId, playerId: playersRef.id });
     userContext?.setUserInfo({
-      ...userContext.userInfo,
+      ...userInfo,
       selectedRoomId: roomId,
       playerId: playersRef.id,
     });
@@ -135,8 +148,8 @@ const LobbyPage: React.FC = () => {
         autoComplete="off"
       >
         <div>
-          Wellcome {userContext?.userInfo.userName} to this game, please try to
-          entry a guessing room
+          Wellcome {userInfo.userName} to this game, please try to entry a
+          guessing room
         </div>
         <br />
         <br />

@@ -22,15 +22,17 @@ import {
   faUsersLine,
 } from "@fortawesome/free-solid-svg-icons";
 import { firestore } from "firebaseConfig";
-import { UserContext } from "App";
+import { IUserInfo, UserContext } from "App";
 import { useCookies } from "react-cookie";
 import {
   collection,
   doc,
   getDoc,
+  getDocs,
   onSnapshot,
   query,
   updateDoc,
+  where,
 } from "firebase/firestore";
 import { handleRandomColor } from "function";
 import ConfirmationDialog from "components/ConfirmationDialog";
@@ -43,10 +45,14 @@ const GuessingRoomPage: React.FC = () => {
   const [players, setPlayers] = useState<any[]>([]);
   const [roomInfo, setRoomInfo] = useState<any>({});
   const [isGameProcessing, setIsGameProcessing] = useState<boolean>(false);
-  const userName = userContext?.userInfo.userName;
-  const playerId = userContext?.userInfo.playerId;
+  const [userInfo, setUserInfo] = useState<IUserInfo>({
+    userName: "",
+    userId: "",
+    selectedRoomId: "",
+    playerId: "",
+  });
   const [isDialogOpen, setIsDialogOpen] = useState<boolean>(false);
-  const [isBackDropOpen, setIsBackDropOpen] = useState<boolean>(false);
+  // const [isBackDropOpen, setIsBackDropOpen] = useState<boolean>(false);
   const [rpsResult, setRpsResult] = useState<string>("");
 
   useEffect(() => {
@@ -59,7 +65,18 @@ const GuessingRoomPage: React.FC = () => {
 
     // room player listen
     handlePlayers();
-  }, []);
+  }, [userInfo]);
+
+  useEffect(() => {
+    if (userContext?.userInfo.userId) {
+      setUserInfo({
+        userName: userContext?.userInfo.userName as string,
+        userId: userContext?.userInfo.userId as string,
+        selectedRoomId: userContext?.userInfo.selectedRoomId as string,
+        playerId: userContext?.userInfo.playerId as string,
+      });
+    }
+  }, [userContext]);
 
   const handleRoomInfo = async () => {
     onSnapshot(doc(firestore, "rooms", roomId as string), (doc) => {
@@ -72,15 +89,66 @@ const GuessingRoomPage: React.FC = () => {
     const playersQuery = query(
       collection(firestore, "rooms", roomId as string, "players")
     );
-    onSnapshot(playersQuery, (querySnapshot) => {
+    onSnapshot(playersQuery, async (querySnapshot) => {
       const playersData: any[] = querySnapshot.docs.map((doc) => {
+        if (
+          roomInfo &&
+          roomInfo.isGameProcessing &&
+          doc.data().userId === userInfo.userId &&
+          doc.data().rpsResult
+        ) {
+          // console.log(doc.data().rpsResult);
+          // setIsBackDropOpen(true);
+        }
         return {
           ...doc.data(),
           playerId: doc.id,
           avatarColor: handleRandomColor(),
         };
       });
+
       setPlayers(playersData);
+
+      if (
+        playersData.length ===
+        playersData.filter((player) => player.rpsResult).length
+      ) {
+        // const rpsMap = new Map<string, number>();
+
+        // playersData.forEach((player) => {
+        //   if (player.rpsResult === "scissors") {
+        //     let currentCount = rpsMap.get("scissors") || 0;
+        //     rpsMap.set("scissors", ++currentCount);
+        //   } else if (player.rpsResult === "paper") {
+        //     let currentCount = rpsMap.get("paper") || 0;
+        //     rpsMap.set("paper", ++currentCount);
+        //   } else if (player.rpsResult === "rock") {
+        //     let currentCount = rpsMap.get("rock") || 0;
+        //     rpsMap.set("rock", ++currentCount);
+        //   }
+        // });
+
+        if (
+          roomInfo &&
+          roomInfo.isGameProcessing
+          // &&
+          // (rpsMap.size === 1 || rpsMap.size === 3)
+        ) {
+          setIsGameProcessing(false);
+          // setIsBackDropOpen(false);
+
+          const roomRef = doc(firestore, "rooms", roomId as string);
+          const roomDocSnap = await getDoc(roomRef);
+          updateDoc(roomRef, {
+            isShowResult: !roomDocSnap.data()?.isShowResult,
+            isGameProcessing: !roomDocSnap.data()?.isGameProcessing,
+          });
+        }
+        // else {
+        //   if (rpsMap.get("paper") && rpsMap.get("rock")) {
+        //   }
+        // }
+      }
     });
   };
 
@@ -100,6 +168,19 @@ const GuessingRoomPage: React.FC = () => {
     const roomDocSnap = await getDoc(roomRef);
     updateDoc(roomRef, {
       isGameProcessing: !roomDocSnap.data()?.isGameProcessing,
+      isShowResult: !roomDocSnap.data()?.isShowResult,
+    });
+
+    const playersQuery = query(
+      collection(firestore, "rooms", roomId as string, "players")
+    );
+
+    const querySnapshot = await getDocs(playersQuery);
+
+    querySnapshot.forEach((doc) => {
+      updateDoc(doc.ref, {
+        rpsResult: "",
+      });
     });
   };
 
@@ -109,14 +190,14 @@ const GuessingRoomPage: React.FC = () => {
       "rooms",
       roomId as string,
       "players",
-      playerId as string
+      userInfo.playerId as string
     );
-    // const playerDocSnap = await getDoc(playerRef);
+
     updateDoc(playerRef, {
-      result: rpsResult,
+      rpsResult,
     });
     setIsDialogOpen(false);
-    setIsBackDropOpen(true);
+    // setIsBackDropOpen(true);
   };
 
   // const handleRenderHandIcon = (player: { userId: string }) => {
@@ -137,10 +218,15 @@ const GuessingRoomPage: React.FC = () => {
         <Box component="div" textAlign={"center"}>
           <h1>Room : {roomInfo?.roomName}</h1>
           <h2>Room owner : {roomInfo?.creator}</h2>
-          {roomInfo?.creator !== userName ? (
+          {roomInfo?.creator !== userInfo.userName ? (
             <>
               <h3>Current Guessing Task : {roomInfo?.taskName}</h3>
               <Divider sx={{ margin: "20px 0" }} />
+              {isGameProcessing && (
+                <Typography textAlign={"center"}>
+                  Let's RPS！ Please make a Deep Thinking{" "}
+                </Typography>
+              )}
             </>
           ) : (
             <>
@@ -155,12 +241,6 @@ const GuessingRoomPage: React.FC = () => {
               <br />
               {isGameProcessing ? (
                 <>
-                  <Button
-                    variant="contained"
-                    onClick={() => handleIsGameProcessing()}
-                  >
-                    Cancel!
-                  </Button>
                   <Divider sx={{ margin: "20px 0" }} />
                   <Typography textAlign={"center"}>
                     Let's RPS！ Please make a Deep Thinking{" "}
@@ -204,40 +284,32 @@ const GuessingRoomPage: React.FC = () => {
                     }}
                     src="/broken-image.jpg"
                   >
-                    {player.userId !== userContext?.userInfo.userId
-                      ? player.userName
-                      : "Me"}
+                    {player.userId !== userInfo.userId ? player.userName : "Me"}
                   </Avatar>
-                  {
-                    player.userId !== userContext?.userInfo.userId && (
-                      <FontAwesomeIcon
-                        icon={faHandFist}
-                        size="3x"
-                        shake={isGameProcessing}
-                        style={{ color: "#000000" }}
-                      />
-                    )
-                    // : player.result === "paper" ? (
-                    //   <FontAwesomeIcon
-                    //     icon={faHandPaper}
-                    //     size="3x"
-                    //     style={{ color: "#fbd723" }}
-                    //   />
-                    // ) : player.result === "scissors" ? (
-                    //   <FontAwesomeIcon
-                    //     icon={faHandScissors}
-                    //     size="3x"
-                    //     style={{ color: "#fbd723" }}
-                    //   />
-                    // ) : player.result === "rock" ? (
-                    //   <FontAwesomeIcon
-                    //     icon={faHandRock}
-                    //     size="3x"
-                    //     style={{ color: "#fbd723" }}
-                    //   />
-                    // ) : (
-                    //   <></>)
-                  }
+                  {!roomInfo.isShowResult &&
+                  player.userId !== userInfo.userId ? (
+                    <></>
+                  ) : player.rpsResult === "paper" ? (
+                    <FontAwesomeIcon
+                      icon={faHandPaper}
+                      size="3x"
+                      style={{ color: "#fbd723" }}
+                    />
+                  ) : player.rpsResult === "scissors" ? (
+                    <FontAwesomeIcon
+                      icon={faHandScissors}
+                      size="3x"
+                      style={{ color: "#fbd723" }}
+                    />
+                  ) : player.rpsResult === "rock" ? (
+                    <FontAwesomeIcon
+                      icon={faHandRock}
+                      size="3x"
+                      style={{ color: "#fbd723" }}
+                    />
+                  ) : (
+                    <></>
+                  )}
                 </Stack>
               </Grid>
             ))}
@@ -314,16 +386,16 @@ const GuessingRoomPage: React.FC = () => {
       </Box>
       <ConfirmationDialog
         open={isDialogOpen}
-        dialogContent={`Are you going to threw ${rpsResult}`}
+        dialogContent={`Are you going to threw ${rpsResult}?`}
         handleClose={() => setIsDialogOpen(false)}
         hanldeConfirm={handleRpsResults}
       />
-      <Backdrop
+      {/* <Backdrop
         sx={{ color: "#fff", zIndex: (theme) => theme.zIndex.drawer + 1 }}
         open={isBackDropOpen}
       >
         <CircularProgress color="inherit" />
-      </Backdrop>
+      </Backdrop> */}
     </>
   );
 };

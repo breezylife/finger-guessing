@@ -1,5 +1,5 @@
 export const handleRandomColor = () => {
-  return `rgb(${Math.floor(Math.random() * 256)},${Math.floor(
-    Math.random() * 256
-  )},${Math.floor(Math.random() * 256)})`;
+  return `rgb(${Math.floor(Math.random() * 180)},${Math.floor(
+    Math.random() * 180
+  )},${Math.floor(Math.random() * 180)})`;
 };
