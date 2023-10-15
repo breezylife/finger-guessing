@@ -1,6 +1,12 @@
 import React, { createContext, useEffect, useState } from "react";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
-import { LobbyPage, SigninPage, SignupPage, GuessingRoomPage } from "pages";
+import {
+  LobbyPage,
+  SigninPage,
+  SignupPage,
+  GuessingRoomPage,
+  EntrancePage,
+} from "pages";
 import { useCookies } from "react-cookie";
 
 export interface IUserInfo {
@@ -10,13 +16,23 @@ export interface IUserInfo {
   playerId?: string;
 }
 
-export const UserContext = createContext<{
+interface AuthContextInterface {
   userInfo: IUserInfo;
   setUserInfo: React.Dispatch<React.SetStateAction<IUserInfo>>;
-} | null>(null);
+}
+
+export const UserContext = createContext<AuthContextInterface>({
+  userInfo: {
+    userName: "",
+    userId: "",
+    selectedRoomId: "",
+    playerId: "",
+  },
+  setUserInfo: () => {},
+});
 
 const App: React.FC = () => {
-  const [cookies] = useCookies();
+  const [cookies, setCookie, removeCookie] = useCookies();
   const [userInfo, setUserInfo] = useState<IUserInfo>({
     userName: "",
     userId: "",
@@ -25,13 +41,13 @@ const App: React.FC = () => {
   });
 
   useEffect(() => {
-    // read user info from cookie
     setUserInfo({
-      userName: cookies?.idToken?.userName,
-      userId: cookies?.idToken?.userId,
-      selectedRoomId: cookies?.idToken?.selectedRoomId,
-      playerId: cookies?.idToken?.playerId,
+      userName: cookies.username,
+      userId: cookies.userid,
+      selectedRoomId: cookies.selectedRoomId,
+      playerId: cookies.playerId,
     });
+    // removeCookie("id");
   }, []);
 
   return (
@@ -39,8 +55,9 @@ const App: React.FC = () => {
       <BrowserRouter>
         <Routes>
           <Route path="/" Component={LobbyPage} />
-          <Route path="/signup" Component={SignupPage} />
-          <Route path="/signin" Component={SigninPage} />
+          <Route path="/entry" Component={EntrancePage} />
+          {/* <Route path="/signup" Component={SignupPage} />
+          <Route path="/signin" Component={SigninPage} /> */}
           <Route path="/guessingRoom/:roomId" Component={GuessingRoomPage} />
         </Routes>
       </BrowserRouter>

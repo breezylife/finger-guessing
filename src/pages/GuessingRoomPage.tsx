@@ -11,21 +11,20 @@ import {
   Button,
   TextField,
   Box,
-  Backdrop,
   CircularProgress,
 } from "@mui/material";
 import {
   faHandScissors,
   faHandRock,
   faHandPaper,
-  faHandFist,
-  faUsersLine,
+  faCircleChevronLeft,
 } from "@fortawesome/free-solid-svg-icons";
 import { firestore } from "firebaseConfig";
-import { IUserInfo, UserContext } from "App";
-import { useCookies } from "react-cookie";
+import { UserContext } from "App";
 import {
   collection,
+  deleteDoc,
+  deleteField,
   doc,
   getDoc,
   getDocs,
@@ -34,126 +33,84 @@ import {
   updateDoc,
   where,
 } from "firebase/firestore";
-import { handleRandomColor } from "function";
-import ConfirmationDialog from "components/ConfirmationDialog";
+import { useCookies } from "react-cookie";
 
 const GuessingRoomPage: React.FC = () => {
   const navigate = useNavigate();
-  const [cookies] = useCookies();
   const { roomId } = useParams();
-  const userContext = useContext(UserContext);
+  const [cookies, setCookie, removeCookie] = useCookies();
+  const { userInfo } = useContext(UserContext);
   const [players, setPlayers] = useState<any[]>([]);
   const [roomInfo, setRoomInfo] = useState<any>({});
   const [isGameProcessing, setIsGameProcessing] = useState<boolean>(false);
-  const [userInfo, setUserInfo] = useState<IUserInfo>({
-    userName: "",
-    userId: "",
-    selectedRoomId: "",
-    playerId: "",
-  });
   const [isDialogOpen, setIsDialogOpen] = useState<boolean>(false);
   // const [isBackDropOpen, setIsBackDropOpen] = useState<boolean>(false);
   const [rpsResult, setRpsResult] = useState<string>("");
 
   useEffect(() => {
-    if (!cookies.idToken) {
-      navigate("/signin");
+    if (!cookies.userid) {
+      navigate("/entry");
     }
 
-    // room info listen
-    handleRoomInfo();
-
-    // room player listen
-    handlePlayers();
+    handleRoomInfo(false);
   }, [userInfo]);
 
   useEffect(() => {
-    if (userContext?.userInfo.userId) {
-      setUserInfo({
-        userName: userContext?.userInfo.userName as string,
-        userId: userContext?.userInfo.userId as string,
-        selectedRoomId: userContext?.userInfo.selectedRoomId as string,
-        playerId: userContext?.userInfo.playerId as string,
-      });
-    }
-  }, [userContext]);
+    handlePlayers(false);
+  }, []);
 
-  const handleRoomInfo = async () => {
-    onSnapshot(doc(firestore, "rooms", roomId as string), (doc) => {
-      setRoomInfo(doc.data());
-      setIsGameProcessing(doc.data()?.isGameProcessing);
-    });
+  const handleRoomInfo = async (isUnsubscribe: boolean) => {
+    const unsubscribe = onSnapshot(
+      doc(firestore, "rooms", roomId as string),
+      (doc) => {
+        setRoomInfo(doc.data());
+        setIsGameProcessing(doc.data()?.isGameProcessing);
+      }
+    );
+
+    if (isUnsubscribe) {
+      unsubscribe();
+    }
   };
 
-  const handlePlayers = async () => {
+  const handlePlayers = async (isUnsubscribe: boolean) => {
     const playersQuery = query(
       collection(firestore, "rooms", roomId as string, "players")
     );
-    onSnapshot(playersQuery, async (querySnapshot) => {
+
+    const unsubscribe = onSnapshot(playersQuery, async (querySnapshot) => {
       const playersData: any[] = querySnapshot.docs.map((doc) => {
-        if (
-          roomInfo &&
-          roomInfo.isGameProcessing &&
-          doc.data().userId === userInfo.userId &&
-          doc.data().rpsResult
-        ) {
-          // console.log(doc.data().rpsResult);
-          // setIsBackDropOpen(true);
-        }
         return {
           ...doc.data(),
           playerId: doc.id,
-          avatarColor: handleRandomColor(),
         };
       });
 
+      if (playersData.length === 0) {
+        await deleteDoc(doc(firestore, "rooms", roomId as string));
+      }
       setPlayers(playersData);
-
       if (
         playersData.length ===
-        playersData.filter((player) => player.rpsResult).length
+          playersData.filter((player) => player.rpsResult).length &&
+        roomInfo?.isGameProcessing &&
+        !roomInfo?.isShowResult
       ) {
-        // const rpsMap = new Map<string, number>();
-
-        // playersData.forEach((player) => {
-        //   if (player.rpsResult === "scissors") {
-        //     let currentCount = rpsMap.get("scissors") || 0;
-        //     rpsMap.set("scissors", ++currentCount);
-        //   } else if (player.rpsResult === "paper") {
-        //     let currentCount = rpsMap.get("paper") || 0;
-        //     rpsMap.set("paper", ++currentCount);
-        //   } else if (player.rpsResult === "rock") {
-        //     let currentCount = rpsMap.get("rock") || 0;
-        //     rpsMap.set("rock", ++currentCount);
-        //   }
-        // });
-
-        if (
-          roomInfo &&
-          roomInfo.isGameProcessing
-          // &&
-          // (rpsMap.size === 1 || rpsMap.size === 3)
-        ) {
-          setIsGameProcessing(false);
-          // setIsBackDropOpen(false);
-
-          const roomRef = doc(firestore, "rooms", roomId as string);
-          const roomDocSnap = await getDoc(roomRef);
-          updateDoc(roomRef, {
-            isShowResult: !roomDocSnap.data()?.isShowResult,
-            isGameProcessing: !roomDocSnap.data()?.isGameProcessing,
-          });
-        }
-        // else {
-        //   if (rpsMap.get("paper") && rpsMap.get("rock")) {
-        //   }
-        // }
+        setIsGameProcessing(false);
+        const roomRef = doc(firestore, "rooms", roomId as string);
+        updateDoc(roomRef, {
+          isShowResult: true,
+          isGameProcessing: false,
+        });
       }
     });
+    if (isUnsubscribe) {
+      unsubscribe();
+    }
   };
 
   const handleTask = (
-    e: React.FocusEvent<HTMLInputElement | HTMLTextAreaElement, Element>
+    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
   ) => {
     const roomRef = doc(firestore, "rooms", roomId as string);
     updateDoc(roomRef, { taskName: e.target.value });
@@ -165,10 +122,9 @@ const GuessingRoomPage: React.FC = () => {
       return;
     }
     const roomRef = doc(firestore, "rooms", roomId as string);
-    const roomDocSnap = await getDoc(roomRef);
     updateDoc(roomRef, {
-      isGameProcessing: !roomDocSnap.data()?.isGameProcessing,
-      isShowResult: !roomDocSnap.data()?.isShowResult,
+      isGameProcessing: true,
+      isShowResult: false,
     });
 
     const playersQuery = query(
@@ -184,7 +140,7 @@ const GuessingRoomPage: React.FC = () => {
     });
   };
 
-  const handleRpsResults = async () => {
+  const handleRpsResults = async (rpsResult: string) => {
     const playerRef = doc(
       firestore,
       "rooms",
@@ -196,8 +152,31 @@ const GuessingRoomPage: React.FC = () => {
     updateDoc(playerRef, {
       rpsResult,
     });
-    setIsDialogOpen(false);
-    // setIsBackDropOpen(true);
+  };
+
+  const handleLeaveRoom = async () => {
+    removeCookie("selectedRoomId");
+    removeCookie("playerId");
+    navigate("/");
+
+    await handleRoomInfo(true);
+    await handlePlayers(true);
+
+    await deleteDoc(
+      doc(
+        firestore,
+        "rooms",
+        roomId as string,
+        "players",
+        userInfo.playerId as string
+      )
+    );
+
+    const userRef = doc(firestore, "users", userInfo.userId);
+    await updateDoc(userRef, {
+      playerId: deleteField(),
+      selectedRoomId: deleteField(),
+    });
   };
 
   // const handleRenderHandIcon = (player: { userId: string }) => {
@@ -215,50 +194,54 @@ const GuessingRoomPage: React.FC = () => {
   return (
     <>
       <Container>
+        <Box
+          sx={{ float: "left", cursor: "pointer" }}
+          onClick={handleLeaveRoom}
+        >
+          <FontAwesomeIcon icon={faCircleChevronLeft} size="3x" />
+        </Box>
         <Box component="div" textAlign={"center"}>
           <h1>Room : {roomInfo?.roomName}</h1>
-          <h2>Room owner : {roomInfo?.creator}</h2>
-          {roomInfo?.creator !== userInfo.userName ? (
+          {/* <h2>Room owner : {roomInfo?.creator}</h2> */}
+          <h2> Current Task : {roomInfo?.taskName}</h2>
+          {/* {roomInfo?.creator !== userInfo.userName ? (
             <>
-              <h3>Current Guessing Task : {roomInfo?.taskName}</h3>
+              <h3>Current Task Name: {roomInfo?.taskName}</h3>
               <Divider sx={{ margin: "20px 0" }} />
               {isGameProcessing && (
-                <Typography textAlign={"center"}>
-                  Let's RPS！ Please make a Deep Thinking{" "}
-                </Typography>
+                <Typography textAlign={"center"}>Please threw !</Typography>
               )}
             </>
           ) : (
+            <> */}
+          <TextField
+            id="standard-basic"
+            variant="standard"
+            onChange={(e) => handleTask(e)}
+            placeholder="Current Task"
+            disabled={isGameProcessing}
+          />
+          <br />
+          <br />
+          {isGameProcessing ? (
             <>
-              <TextField
-                id="standard-basic"
-                label="Current Guessing Task"
-                variant="standard"
-                onBlur={(e) => handleTask(e)}
-                disabled={isGameProcessing}
-              />
-              <br />
-              <br />
-              {isGameProcessing ? (
-                <>
-                  <Divider sx={{ margin: "20px 0" }} />
-                  <Typography textAlign={"center"}>
-                    Let's RPS！ Please make a Deep Thinking{" "}
-                  </Typography>
-                </>
-              ) : (
-                <>
-                  <Button
-                    variant="contained"
-                    onClick={() => handleIsGameProcessing()}
-                  >
-                    Start!
-                  </Button>
-                  <Divider sx={{ margin: "20px 0" }} />
-                </>
-              )}
+              <Divider sx={{ margin: "20px 0" }} />
+              <CircularProgress />
+              {/* <Typography textAlign={"center"}>Please threw !</Typography> */}
+            </>
+          ) : (
+            <>
+              <Button
+                variant="contained"
+                onClick={() => handleIsGameProcessing()}
+              >
+                Start!
+              </Button>
+              <Divider sx={{ margin: "20px 0" }} />
             </>
           )}
+          {/* </>
+          )} */}
         </Box>
         <Box
           component="div"
@@ -291,7 +274,7 @@ const GuessingRoomPage: React.FC = () => {
                   >
                     {player.userId !== userInfo.userId ? player.userName : "Me"}
                   </Avatar>
-                  {!roomInfo.isShowResult &&
+                  {!roomInfo?.isShowResult &&
                   player.userId !== userInfo.userId ? (
                     <></>
                   ) : player.rpsResult === "paper" ? (
@@ -328,8 +311,7 @@ const GuessingRoomPage: React.FC = () => {
               sx={{ width: "100px", height: "100px", borderRadius: "100px" }}
               disabled={!isGameProcessing}
               onClick={() => {
-                setIsDialogOpen(true);
-                setRpsResult("paper");
+                handleRpsResults("paper");
               }}
             >
               <FontAwesomeIcon
@@ -343,8 +325,7 @@ const GuessingRoomPage: React.FC = () => {
               sx={{ width: "100px", height: "100px", borderRadius: "100px" }}
               disabled={!isGameProcessing}
               onClick={() => {
-                setIsDialogOpen(true);
-                setRpsResult("scissors");
+                handleRpsResults("scissors");
               }}
             >
               <FontAwesomeIcon
@@ -358,8 +339,7 @@ const GuessingRoomPage: React.FC = () => {
               sx={{ width: "100px", height: "100px", borderRadius: "100px" }}
               disabled={!isGameProcessing}
               onClick={() => {
-                setIsDialogOpen(true);
-                setRpsResult("rock");
+                handleRpsResults("rock");
               }}
             >
               <FontAwesomeIcon
@@ -389,12 +369,12 @@ const GuessingRoomPage: React.FC = () => {
         </Avatar>
         <Typography textAlign="center">Audiences : {}</Typography>
       </Box> */}
-      <ConfirmationDialog
+      {/* <ConfirmationDialog
         open={isDialogOpen}
         dialogContent={`Are you going to threw ${rpsResult}?`}
         handleClose={() => setIsDialogOpen(false)}
         hanldeConfirm={handleRpsResults}
-      />
+      /> */}
       {/* <Backdrop
         sx={{ color: "#fff", zIndex: (theme) => theme.zIndex.drawer + 1 }}
         open={isBackDropOpen}

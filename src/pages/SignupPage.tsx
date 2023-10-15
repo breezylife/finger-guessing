@@ -43,7 +43,7 @@ const defaultTheme = createTheme();
 const SignupPage: React.FC = () => {
   const navigate = useNavigate();
   const [cookies, setCookie] = useCookies();
-  const userContext = useContext(UserContext);
+  const { setUserInfo } = useContext(UserContext);
 
   useEffect(() => {
     if (cookies.idToken) {
@@ -72,7 +72,7 @@ const SignupPage: React.FC = () => {
             userId: userCredential.user.uid,
           });
         });
-        userContext?.setUserInfo({ userName, userId: userCredential.user.uid });
+        setUserInfo({ userName, userId: userCredential.user.uid });
         navigate("/");
       })
       .catch((error) => {
@@ -161,6 +161,7 @@ const SignupPage: React.FC = () => {
                     type="password"
                     id="password"
                     autoComplete="new-password"
+                    helperText="At leasts 6 length"
                   />
                 </Grid>
                 {/* <Grid item xs={12}>

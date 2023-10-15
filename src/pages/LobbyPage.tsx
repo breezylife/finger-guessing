@@ -12,7 +12,7 @@ import DialogContentText from "@mui/material/DialogContentText";
 import DialogTitle from "@mui/material/DialogTitle";
 import { firestore } from "firebaseConfig";
 import { GuessingRoomCard } from "components/GuessingRoomCard";
-import { IUserInfo, UserContext } from "App";
+import { UserContext } from "App";
 import {
   collection,
   doc,
@@ -24,6 +24,7 @@ import {
   addDoc,
   updateDoc,
 } from "firebase/firestore";
+import { handleRandomColor } from "function";
 
 interface Props {
   roomName: string;
@@ -35,42 +36,21 @@ interface Props {
 const LobbyPage: React.FC = () => {
   const navigate = useNavigate();
   const [cookies, setCookie] = useCookies();
-  const userContext = useContext(UserContext);
-  const [userInfo, setUserInfo] = useState<IUserInfo>({
-    userName: "",
-    userId: "",
-    selectedRoomId: "",
-    playerId: "",
-  });
+  const { userInfo, setUserInfo } = useContext(UserContext);
   const [newGuessingRoom, setNewGuessingRoom] = useState({
     roomName: "",
   });
   const [guessingRooms, setGuessingRooms] = useState<any[]>([]);
 
   useEffect(() => {
-    if (!cookies.idToken) {
-      navigate("/signin");
+    if (!cookies.userid) {
+      navigate("/entry");
+    } else if (cookies?.selectedRoomId) {
+      navigate(`/guessingRoom/${cookies?.selectedRoomId}`);
     }
 
     handleRoomsData();
   }, [userInfo]);
-
-  useEffect(() => {
-    if (userContext?.userInfo.selectedRoomId) {
-      navigate(`/guessingRoom/${userContext?.userInfo.selectedRoomId}`);
-    }
-  }, [userContext]);
-
-  useEffect(() => {
-    if (userContext?.userInfo.userId) {
-      setUserInfo({
-        userName: userContext?.userInfo.userName as string,
-        userId: userContext?.userInfo.userId as string,
-        selectedRoomId: userContext?.userInfo.selectedRoomId as string,
-        playerId: userContext?.userInfo.playerId as string,
-      });
-    }
-  }, [userContext]);
 
   const [open, setOpen] = React.useState(false);
 
@@ -93,24 +73,29 @@ const LobbyPage: React.FC = () => {
   };
 
   const handleCreateRoom = async () => {
-    await handleCreateGuessingRoom({
-      ...newGuessingRoom,
-      creator: userInfo.userName as string,
-    });
-    setOpen(false);
-  };
-
-  const handleCreateGuessingRoom = async (roomInfo: {
-    roomName: string;
-    creator: string | undefined;
-  }) => {
-    //create new room
     const roomsRef = await addDoc(collection(firestore, "rooms"), {
-      ...roomInfo,
+      ...newGuessingRoom,
       isGameProcessing: false,
     });
-    const roomId = roomsRef.id as string;
-    handleJoinGuessingRoom(roomId);
+
+    setOpen(false);
+
+    const playersRef = await addDoc(
+      collection(firestore, `rooms/${roomsRef.id}/players`),
+      {
+        userName: userInfo.userName,
+        userId: userInfo.userId,
+        avatarColor: handleRandomColor(),
+      }
+    );
+    setUserInfo({
+      ...userInfo,
+      selectedRoomId: roomsRef.id,
+      playerId: playersRef.id,
+    });
+    setCookie("selectedRoomId", roomsRef.id);
+    setCookie("playerId", playersRef.id);
+    navigate(`/guessingRoom/${roomsRef.id}`);
   };
 
   const handleJoinGuessingRoom = async (roomId: string) => {
@@ -119,21 +104,17 @@ const LobbyPage: React.FC = () => {
       {
         userName: userInfo.userName,
         userId: userInfo.userId,
+        avatarColor: handleRandomColor(),
       }
     );
 
-    const userRef = doc(firestore, "users", userInfo.userId as string);
-    updateDoc(userRef, { selectedRoomId: roomId, playerId: playersRef.id });
-    userContext?.setUserInfo({
+    setUserInfo({
       ...userInfo,
       selectedRoomId: roomId,
       playerId: playersRef.id,
     });
-    setCookie("idToken", {
-      ...cookies.idToken,
-      selectedRoomId: roomId,
-      playerId: playersRef.id,
-    });
+    setCookie("selectedRoomId", roomId);
+    setCookie("playerId", playersRef.id);
     navigate(`/guessingRoom/${roomId}`);
   };
 
@@ -147,7 +128,7 @@ const LobbyPage: React.FC = () => {
         noValidate
         autoComplete="off"
       >
-        <div>User : {userInfo.userName}</div>
+        <div>Hi! {userInfo.userName}</div>
         <Button
           sx={{ margin: "20px 0" }}
           variant="outlined"
@@ -159,7 +140,6 @@ const LobbyPage: React.FC = () => {
           {guessingRooms.map((room: Props) => (
             <Grid key={room.roomId} item xs={12} sm={6} md={4}>
               <GuessingRoomCard
-                creator={room.creator}
                 roomName={room.roomName}
                 roomId={room.roomId}
                 handleJoinGuessingRoom={handleJoinGuessingRoom}
@@ -172,10 +152,10 @@ const LobbyPage: React.FC = () => {
       <Dialog open={open} onClose={handleClose}>
         <DialogTitle>Create New Room</DialogTitle>
         <DialogContent>
-          <DialogContentText>
-            Note: You will be this room master and host the finger guessing
-            game.
-          </DialogContentText>
+          {/* <DialogContentText> */}
+          {/* Note: You will be this room master and host the finger guessing
+            game. */}
+          {/* </DialogContentText> */}
           <TextField
             autoFocus
             margin="dense"
