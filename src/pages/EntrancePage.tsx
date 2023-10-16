@@ -17,6 +17,7 @@ import { firestore } from "firebaseConfig";
 import { useCookies } from "react-cookie";
 import { UserContext } from "App";
 import { addDoc, collection } from "firebase/firestore";
+import { v4 as uuid } from "uuid";
 
 // TODO remove, this demo shouldn't need to reset the theme.
 const defaultTheme = createTheme();
@@ -30,15 +31,15 @@ const EntrancePage: React.FC = () => {
     event.preventDefault();
     const data = new FormData(event.currentTarget);
     const userName = data.get("name") as string;
-    const userRef = await addDoc(collection(firestore, "users"), {
-      userName,
-    });
+    // const userRef = await addDoc(collection(firestore, "users"), {
+    //   userName,
+    // });
 
-    setCookie("userid", userRef.id);
+    setCookie("userid", uuid());
     setCookie("username", userName);
     setUserInfo({
       userName,
-      userId: userRef.id,
+      userId: uuid(),
     });
     navigate("/");
   };

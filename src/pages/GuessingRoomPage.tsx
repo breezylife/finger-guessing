@@ -51,11 +51,10 @@ const GuessingRoomPage: React.FC = () => {
     if (!cookies.userid) {
       navigate("/entry");
     }
-
-    handleRoomInfo(false);
-  }, [userInfo]);
+  }, []);
 
   useEffect(() => {
+    handleRoomInfo(false);
     handlePlayers(false);
   }, []);
 
@@ -63,14 +62,13 @@ const GuessingRoomPage: React.FC = () => {
     const unsubscribe = onSnapshot(
       doc(firestore, "rooms", roomId as string),
       (doc) => {
+        if (isUnsubscribe) {
+          unsubscribe();
+        }
         setRoomInfo(doc.data());
         setIsGameProcessing(doc.data()?.isGameProcessing);
       }
     );
-
-    if (isUnsubscribe) {
-      unsubscribe();
-    }
   };
 
   const handlePlayers = async (isUnsubscribe: boolean) => {
@@ -79,6 +77,9 @@ const GuessingRoomPage: React.FC = () => {
     );
 
     const unsubscribe = onSnapshot(playersQuery, async (querySnapshot) => {
+      if (isUnsubscribe) {
+        unsubscribe();
+      }
       const playersData: any[] = querySnapshot.docs.map((doc) => {
         return {
           ...doc.data(),
@@ -90,11 +91,15 @@ const GuessingRoomPage: React.FC = () => {
         await deleteDoc(doc(firestore, "rooms", roomId as string));
       }
       setPlayers(playersData);
+
+      const roomRef = doc(firestore, "rooms", roomId as string);
+      const roomSnap: any = (await getDoc(roomRef)).data();
       if (
+        playersData.length > 0 &&
         playersData.length ===
           playersData.filter((player) => player.rpsResult).length &&
-        roomInfo?.isGameProcessing &&
-        !roomInfo?.isShowResult
+        roomSnap?.isGameProcessing &&
+        !roomSnap?.isShowResult
       ) {
         setIsGameProcessing(false);
         const roomRef = doc(firestore, "rooms", roomId as string);
@@ -104,9 +109,6 @@ const GuessingRoomPage: React.FC = () => {
         });
       }
     });
-    if (isUnsubscribe) {
-      unsubscribe();
-    }
   };
 
   const handleTask = (
@@ -159,8 +161,8 @@ const GuessingRoomPage: React.FC = () => {
     removeCookie("playerId");
     navigate("/");
 
-    await handleRoomInfo(true);
     await handlePlayers(true);
+    await handleRoomInfo(true);
 
     await deleteDoc(
       doc(
@@ -172,11 +174,11 @@ const GuessingRoomPage: React.FC = () => {
       )
     );
 
-    const userRef = doc(firestore, "users", userInfo.userId);
-    await updateDoc(userRef, {
-      playerId: deleteField(),
-      selectedRoomId: deleteField(),
-    });
+    // const userRef = doc(firestore, "users", userInfo.userId);
+    // await updateDoc(userRef, {
+    //   playerId: deleteField(),
+    //   selectedRoomId: deleteField(),
+    // });
   };
 
   // const handleRenderHandIcon = (player: { userId: string }) => {
@@ -265,8 +267,8 @@ const GuessingRoomPage: React.FC = () => {
                 >
                   <Avatar
                     sx={{
-                      height: "80%",
-                      width: "80%",
+                      height: "100%",
+                      width: "100%",
                       marginBottom: "10px",
                       backgroundColor: player.avatarColor,
                     }}
