@@ -33,7 +33,7 @@ export const GuessingRoomCard = ({
       </CardContent>
       <CardActions sx={{ textAlign: "center" }}>
         <Button size="small" onClick={() => handleJoinGuessingRoom(roomId)}>
-          Entry
+          Enter
         </Button>
       </CardActions>
     </Card>

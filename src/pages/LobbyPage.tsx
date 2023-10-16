@@ -118,6 +118,10 @@ const LobbyPage: React.FC = () => {
     navigate(`/guessingRoom/${roomId}`);
   };
 
+  const handleDomainUrlTextToCopy = () => {
+    navigator.clipboard.writeText("https://fingerguessing.web.app");
+  };
+
   return (
     <>
       <Box
@@ -128,13 +132,35 @@ const LobbyPage: React.FC = () => {
         noValidate
         autoComplete="off"
       >
-        <div>Hi! {userInfo.userName}</div>
+        <div>
+          Hi! {userInfo.userName}
+          <br />
+          <br />
+          Welcome to the Rock, Paper, Scissors Stimulator. <br />
+          <br />
+          Please create a new room to proceed. Rooms that are created here will
+          be visible to anyone who has access to this link. <br />
+          <br />
+          Allow other users to join the Stimulator by clicking{" "}
+          <a
+            style={{
+              textDecoration: "underline",
+              color: "blue",
+              cursor: "pointer",
+            }}
+            onClick={handleDomainUrlTextToCopy}
+          >
+            here
+          </a>
+          . The website address will be automatically copied to your clipboard.
+        </div>
+
         <Button
           sx={{ margin: "20px 0" }}
           variant="outlined"
           onClick={handleClickOpen}
         >
-          Create New Guessing Room
+          Create a room
         </Button>
         <Grid container spacing={2}>
           {guessingRooms.map((room: Props) => (
@@ -150,7 +176,7 @@ const LobbyPage: React.FC = () => {
       </Box>
 
       <Dialog open={open} onClose={handleClose}>
-        <DialogTitle>Create New Room</DialogTitle>
+        <DialogTitle>Create A Room</DialogTitle>
         <DialogContent>
           {/* <DialogContentText> */}
           {/* Note: You will be this room master and host the finger guessing

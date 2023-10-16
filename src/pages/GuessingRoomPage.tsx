@@ -202,10 +202,23 @@ const GuessingRoomPage: React.FC = () => {
         >
           <FontAwesomeIcon icon={faCircleChevronLeft} size="3x" />
         </Box>
-        <Box component="div" textAlign={"center"}>
+        <Box component="div" sx={{ marginLeft: "100px" }}>
           <h1>Room : {roomInfo?.roomName}</h1>
           {/* <h2>Room owner : {roomInfo?.creator}</h2> */}
-          <h2> Current Task : {roomInfo?.taskName}</h2>
+          <p>
+            <b>Things You Should Know</b>
+            <ul>
+              <li>Please name your task to begin. </li>
+              <li>
+                Once started, please choose your hand signal - either rock,
+                paper or scissors. Results will be displayed after all
+                participants have thrown their choices.{" "}
+              </li>
+            </ul>
+            <b> Rules to Follow </b>
+            <br />
+            Rock beats scissors, scissors beat paper, and paper beats rock.
+          </p>
           {/* {roomInfo?.creator !== userInfo.userName ? (
             <>
               <h3>Current Task Name: {roomInfo?.taskName}</h3>
@@ -216,15 +229,22 @@ const GuessingRoomPage: React.FC = () => {
             </>
           ) : (
             <> */}
-          <TextField
-            id="standard-basic"
-            variant="standard"
-            onChange={(e) => handleTask(e)}
-            placeholder="Current Task"
-            disabled={isGameProcessing}
-          />
+          <br />
+          <h2> Current Task : {roomInfo?.taskName}</h2>
+
+          {!isGameProcessing && (
+            <TextField
+              id="standard-basic"
+              variant="standard"
+              onChange={(e) => handleTask(e)}
+              placeholder="Current Task"
+              disabled={isGameProcessing}
+            />
+          )}
           <br />
           <br />
+        </Box>
+        <Box>
           {isGameProcessing ? (
             <>
               <Divider sx={{ margin: "20px 0" }} />
@@ -261,8 +281,8 @@ const GuessingRoomPage: React.FC = () => {
               >
                 <Stack
                   sx={{
-                    width: "150px",
-                    height: "150px",
+                    width: "120px",
+                    height: "120px",
                   }}
                 >
                   <Avatar
@@ -310,7 +330,7 @@ const GuessingRoomPage: React.FC = () => {
           <Stack direction="row" justifyContent="center">
             <Button
               variant="contained"
-              sx={{ width: "100px", height: "100px", borderRadius: "100px" }}
+              sx={{ width: "120px", height: "120px", borderRadius: "120px" }}
               disabled={!isGameProcessing}
               onClick={() => {
                 handleRpsResults("paper");
@@ -324,7 +344,7 @@ const GuessingRoomPage: React.FC = () => {
             </Button>
             <Button
               variant="contained"
-              sx={{ width: "100px", height: "100px", borderRadius: "100px" }}
+              sx={{ width: "120px", height: "120px", borderRadius: "120px" }}
               disabled={!isGameProcessing}
               onClick={() => {
                 handleRpsResults("scissors");
@@ -338,7 +358,7 @@ const GuessingRoomPage: React.FC = () => {
             </Button>
             <Button
               variant="contained"
-              sx={{ width: "100px", height: "100px", borderRadius: "100px" }}
+              sx={{ width: "120px", height: "120px", borderRadius: "120px" }}
               disabled={!isGameProcessing}
               onClick={() => {
                 handleRpsResults("rock");
