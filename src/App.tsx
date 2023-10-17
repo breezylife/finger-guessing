@@ -41,12 +41,12 @@ const App: React.FC = () => {
   });
 
   useEffect(() => {
-    // setUserInfo({
-    //   userName: cookies.username,
-    //   userId: cookies.userid,
-    //   selectedRoomId: cookies.selectedRoomId,
-    //   playerId: cookies.playerId,
-    // });
+    setUserInfo({
+      userName: cookies.username,
+      userId: cookies.userid,
+      selectedRoomId: cookies.selectedRoomId,
+      playerId: cookies.playerId,
+    });
     // removeCookie("id");
   }, []);
 
