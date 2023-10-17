@@ -162,9 +162,9 @@ const GuessingRoomPage: React.FC = () => {
   };
 
   const handleLeaveRoom = async () => {
-    removeCookie("selectedRoomId");
-    removeCookie("playerId");
-    navigate("/");
+    await removeCookie("selectedRoomId");
+    await removeCookie("playerId");
+    await navigate("/");
 
     await handlePlayers(true);
     await handleRoomInfo(true);
@@ -277,7 +277,7 @@ const GuessingRoomPage: React.FC = () => {
         <Box
           component="div"
           sx={{
-            margin: "50px 0",
+            margin: "0px 0px 65px 0px",
           }}
         >
           <Grid container spacing={2}>
