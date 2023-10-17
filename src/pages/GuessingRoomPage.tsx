@@ -62,6 +62,11 @@ const GuessingRoomPage: React.FC = () => {
     const unsubscribe = onSnapshot(
       doc(firestore, "rooms", roomId as string),
       (doc) => {
+        if (!doc.exists()) {
+          removeCookie("selectedRoomId");
+          removeCookie("playerId");
+          navigate("/");
+        }
         if (isUnsubscribe) {
           unsubscribe();
         }
