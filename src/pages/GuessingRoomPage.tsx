@@ -205,7 +205,7 @@ const GuessingRoomPage: React.FC = () => {
         <Box component="div" sx={{ marginLeft: "100px" }}>
           <h1>Room : {roomInfo?.roomName}</h1>
           {/* <h2>Room owner : {roomInfo?.creator}</h2> */}
-          <p>
+          <div>
             <b>Things You Should Know</b>
             <ul>
               <li>Please name your task to begin. </li>
@@ -218,7 +218,7 @@ const GuessingRoomPage: React.FC = () => {
             <b> Rules to Follow </b>
             <br />
             Rock beats scissors, scissors beat paper, and paper beats rock.
-          </p>
+          </div>
           {/* {roomInfo?.creator !== userInfo.userName ? (
             <>
               <h3>Current Task Name: {roomInfo?.taskName}</h3>
@@ -233,13 +233,23 @@ const GuessingRoomPage: React.FC = () => {
           <h2> Current Task : {roomInfo?.taskName}</h2>
 
           {!isGameProcessing && (
-            <TextField
-              id="standard-basic"
-              variant="standard"
-              onChange={(e) => handleTask(e)}
-              placeholder="Current Task"
-              disabled={isGameProcessing}
-            />
+            <>
+              <TextField
+                id="standard-basic"
+                variant="standard"
+                onChange={(e) => handleTask(e)}
+                placeholder="Current Task"
+                disabled={isGameProcessing}
+              />
+              <br />
+              <br />
+              <Button
+                variant="contained"
+                onClick={() => handleIsGameProcessing()}
+              >
+                Start!
+              </Button>
+            </>
           )}
           <br />
           <br />
@@ -253,12 +263,6 @@ const GuessingRoomPage: React.FC = () => {
             </>
           ) : (
             <>
-              <Button
-                variant="contained"
-                onClick={() => handleIsGameProcessing()}
-              >
-                Start!
-              </Button>
               <Divider sx={{ margin: "20px 0" }} />
             </>
           )}
